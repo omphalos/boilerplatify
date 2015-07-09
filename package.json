@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "prompt": "^0.2.14",
+    "string": "^3.3.0"
+  },
+  "name": "boilerplatify",
+  "version": "0.0.1",
+  "description": "A boilerplate for my projects",
+  "main": "boilerplatify.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/omphalos/boilerplatify"
+  },
+  "author": "omphalos",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/omphalos/boilerplatify/issues"
+  },
+  "homepage": "https://github.com/omphalos/boilerplatify",
+  "scripts": {}
+}
