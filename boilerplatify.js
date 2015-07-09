@@ -131,7 +131,7 @@ function onNpmReady() {
     fs.writeFileSync('./README.md', fromTemplate(readMeTemplate))
   }
 
-  if(settings.tests && !fs.existsSync('./travis.yml')) {
+  if(!fs.existsSync('./travis.yml')) {
     console.log('writing travis.yml')
     fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
   }
