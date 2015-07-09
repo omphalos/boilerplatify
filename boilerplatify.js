@@ -56,6 +56,7 @@ function onPrompt() {
     name: settings.title,
     version: '0.0.1',
     description: settings.description,
+    bin: settings.main,
     main: settings.main,
     scripts: {},
     keywords: settings.keywords,
