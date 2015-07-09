@@ -9,7 +9,7 @@ A boilerplate for my projects
 Installation
 ============
 
-    npm install boilerplatify
+    npm install -g boilerplatify
 
 Usage
 =====
