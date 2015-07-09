@@ -17,5 +17,9 @@
     "url": "https://github.com/omphalos/boilerplatify/issues"
   },
   "homepage": "https://github.com/omphalos/boilerplatify",
-  "scripts": {}
+  "scripts": {},
+  "keywords": [
+    "boilerplate",
+    "utility"
+  ]
 }

@@ -19,6 +19,7 @@ childProcess.exec('git config --get user.name', function(ex, out, err) {
 function onGitConfig() {
   prompt.get([
     'description',
+    'keywords(space-delimited)',
     'tests(y/n)',
     'browser(y/n)'
   ], function(err, result) {
@@ -42,6 +43,7 @@ function onGitConfig() {
     else settings.main = settings.title + '.js'
     settings.browser = settings['browser(y/n)'] === 'y'
     settings.tests = settings['tests(y/n)'] === 'y'
+    settings.keywords = settings['keywords(space-delimited)'].split(' ')
     onPrompt()
   })
 }
@@ -56,6 +58,7 @@ function onPrompt() {
     description: settings.description,
     main: settings.main,
     scripts: {},
+    keywords: settings.keywords,
     repository: {
       type: 'git',
       url: settings.githubUrl
@@ -147,9 +150,11 @@ function onNpmReady() {
   fs.writeFileSync('./.gitignore', gitignore.join('\n'))
 
   console.log()
-  console.log('TODO')
+  console.log('Things to do (not automated by boilerplatify):')
   console.log('* Add the repo to github')
   console.log('* Add the repo to travis')
+  console.log('* npm publish')
+  console.log('* Enhance your README')
 }
 
 function licenseTemplate() {/*
@@ -193,6 +198,7 @@ function readMeTemplate() {/*
 <under:title>
 
 <travisLink>
+
 <description>
 
 Installation
