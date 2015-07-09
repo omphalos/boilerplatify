@@ -39,6 +39,10 @@ and a default favicon
 
 * Initializes .gitignore
 
+Note that boilerplatify's changes are non-destructive.
+It won't overwrite an existing README
+or overwrite any data in .gitignore or package.json.
+
 License
 =======
 
