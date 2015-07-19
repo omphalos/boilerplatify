@@ -92,7 +92,7 @@ function onPrompt() {
   }
   if(!fs.existsSync('./' + settings.main)) {
     console.log('writing ' + settings.main)
-    fs.writeFileSync('./' + settings.main)
+    fs.writeFileSync('./' + settings.main, "'use strict'\n")
   }
   if(settings.browser === 'y' && !fs.existsSync('./favicon.ico')) {
     console.log('writing favicon.ico')
