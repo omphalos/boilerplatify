@@ -9,6 +9,13 @@ var fs = require('fs')
   , string = require('string')
   , settings
   , gitUser
+  , hasPackageJson
+  , packageJson = {}
+
+if(fs.existsSync('./package.json')) {
+  hasPackageJson = true
+  packageJson = JSON.parse(fs.readFileSync('./package.json').toString())
+}
 
 childProcess.exec('git config --get user.name', function(ex, out, err) {
   if(ex) throw ex
@@ -17,12 +24,16 @@ childProcess.exec('git config --get user.name', function(ex, out, err) {
 })
 
 function onGitConfig() {
-  prompt.get([
-    'description',
-    'keywords(space-delimited)',
-    'tests(y/n)',
-    'browser(y/n)'
-  ], function(err, result) {
+  var prompts = []
+  if(!packageJson.description) prompts.push('description')
+  if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
+  if(!hasPackageJson || !packageJson.scripts) {
+    if(!hasPackageJson || !packageJson.scripts.build)
+      prompts.push('browser(y/n)')
+    if(!hasPackageJson || !packageJson.scripts.test)
+      prompts.push('tests(y/n)')
+  }
+  prompt.get(prompts, function(err, result) {
     if(err) throw err
     settings = result
     settings.author = gitUser
@@ -43,15 +54,14 @@ function onGitConfig() {
     else settings.main = settings.title + '.js'
     settings.browser = settings['browser(y/n)'] === 'y'
     settings.tests = settings['tests(y/n)'] === 'y'
-    settings.keywords = settings['keywords(space-delimited)'].split(' ')
+    settings.keywords = (settings['keywords(space-delimited)'] || '')
+      .split(' ')
+      .filter(function(x) { return x.length })
     onPrompt()
   })
 }
 
 function onPrompt() {
-  var packageJson = {}
-  if(fs.existsSync('./package.json'))
-    packageJson = JSON.parse(fs.readFileSync('./package.json').toString())
   var packageDefaults = {
     name: settings.title,
     version: '0.0.1',
@@ -76,10 +86,14 @@ function onPrompt() {
       './node_modules/browserify/bin/cmd.js ' +
       'browserify -s ' + settings.camelTitle + ' -r ./ > ' +
       settings.main + '.browser.js'
-  if(settings.tests === 'y')
+  if(settings.tests) {
     packageDefaults.scripts.test =
       './node_modules/istanbul/lib/cli.js ' +
       'cover node_modules/nodeunit/bin/nodeunit -- ./tests.js'
+    packageDefaults.scripts.watch =
+      './node_modules/nodemon/bin/nodemon.js ' +
+      'node_modules/nodeunit/bin/nodeunit -- ./tests.js'
+  }
   var packageChanged = setDefaults(packageDefaults, packageJson)
   if(packageChanged) {
     console.log('writing package.json')
@@ -100,12 +114,30 @@ function onPrompt() {
     fs.writeFileSync('./favicon.ico', favicon)
   }
 
-  console.log('installing npm packages')
+  function ensurePackage(name) {
+    if(packageJson.devDependencies && packageJson.devDependencies[name]) return
+    if(packageJson.dependencies && packageJson.dependencies[name]) return
+    packages.push(name)
+  }
+
   var packages = []
-  if(settings.tests)
-    packages = packages.concat(['istanbul', 'nodeunit'])
+    , editPackages
+
+  if(settings.tests) {
+    ensurePackage('istanbul')
+    ensurePackage('nodeunit')
+    ensurePackage('nodemon')
+  }
+
   if(settings.browser === 'y')
-    packages.push('browserify')
+    ensurePackage('browserify')
+
+  if(!packages.length) {
+    onNpmReady()
+    return
+  }
+
+  console.log('installing npm packages')
   var npm = childProcess.spawn('npm', [
     'install',
     '--save-dev',
@@ -135,20 +167,27 @@ function onNpmReady() {
     fs.writeFileSync('./README.md', fromTemplate(readMeTemplate))
   }
 
-  if(!fs.existsSync('./travis.yml')) {
+  if(!fs.existsSync('./.travis.yml')) {
     console.log('writing travis.yml')
     fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
   }
 
   var gitignore = []
+    , editGitignore
   if(fs.existsSync('./.gitignore'))
     gitignore = fs.readFileSync('./.gitignore').toString().split('\n')
-  if(gitignore.indexOf('node_modules') < 0)
+  if(gitignore.indexOf('node_modules') < 0) {
     gitignore.push('node_modules')
-  if(settings.tests && gitignore.indexOf('coverage') < 0)
+    editGitignore = true
+  }
+  if(settings.tests && gitignore.indexOf('coverage') < 0) {
     gitignore.push('coverage')
-  console.log('writing .gitignore')
-  fs.writeFileSync('./.gitignore', gitignore.join('\n'))
+    editGitignore = true
+  }
+  if(editGitignore) {
+    console.log('writing .gitignore')
+    fs.writeFileSync('./.gitignore', gitignore.join('\n'))
+  }
 
   console.log()
   console.log('Things to do (not automated by boilerplatify):')
