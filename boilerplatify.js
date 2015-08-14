@@ -28,9 +28,9 @@ function onGitConfig() {
   if(!packageJson.description) prompts.push('description')
   if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
   if(!hasPackageJson || !packageJson.scripts) {
-    if(!hasPackageJson || !packageJson.scripts.build)
+    if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
       prompts.push('browser(y/n)')
-    if(!hasPackageJson || !packageJson.scripts.test)
+    if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.test)
       prompts.push('tests(y/n)')
   }
   prompt.get(prompts, function(err, result) {
