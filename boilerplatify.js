@@ -27,12 +27,10 @@ function onGitConfig() {
   var prompts = []
   if(!packageJson.description) prompts.push('description')
   if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
-  if(!hasPackageJson || !packageJson.scripts) {
-    if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
-      prompts.push('browser(y/n)')
-    if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.test)
-      prompts.push('tests(y/n)')
-  }
+  if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
+    prompts.push('browser(y/n)')
+  if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.test)
+    prompts.push('tests(y/n)')
   prompt.get(prompts, function(err, result) {
     if(err) throw err
     settings = result
