@@ -25,7 +25,6 @@ childProcess.exec('git config --get user.name', function(ex, out, err) {
 
 function onGitConfig() {
   var prompts = []
-  if(!packageJson.description) prompts.push('description')
   if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
   if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
     prompts.push('browser(y/n)')
@@ -34,24 +33,31 @@ function onGitConfig() {
   prompt.get(prompts, function(err, result) {
     if(err) throw err
     settings = result
+    if(!('description' in settings))
+      settings.description = packageJson.description || '<description>'
+    var desc = settings.description
+    if(desc[desc.length - 1] === '.') {
+      settings.descriptionLine = desc
+      settings.description = desc.substring(0, desc.length - 1)
+    } else settings.descriptionLine = desc + '.'
     settings.author = gitUser
     settings.title = path.basename(process.cwd())
     settings.githubUrl = 'https://github.com/' +
       settings.author + '/' + settings.title
     settings.year = new Date().getYear() + 1900
     settings.camelTitle = string(settings.title).camelize()
-    settings.travisLink = '[![Build Status]' +
+    settings.browser = settings['browser(y/n)'] === 'y'
+    settings.tests = settings['tests(y/n)'] === 'y'
+    settings.travisLink = !settings.tests ? '' : ('[![Build Status]' +
       '(https://secure.travis-ci.org/' +
       settings.author + '/' +
       settings.title + '.png)]' +
       '(http://travis-ci.org/' +
       settings.author + '/' +
-      settings.title + ')'
+      settings.title + ')')
     if(fs.existsSync('./index.js'))
       settings.main = 'index.js'
     else settings.main = settings.title + '.js'
-    settings.browser = settings['browser(y/n)'] === 'y'
-    settings.tests = settings['tests(y/n)'] === 'y'
     settings.keywords = (settings['keywords(space-delimited)'] || '')
       .split(' ')
       .filter(function(x) { return x.length })
@@ -155,7 +161,13 @@ function onPrompt() {
 }
 
 function onNpmReady() {
+  childProcess.exec('chmod +x ' + settings.main, function(ex, out, err) {
+    if(ex) throw ex
+    onPermissionAdded()
+  })
+}
 
+function onPermissionAdded() {
   if(!fs.existsSync('./LICENSE')) {
     console.log('writing LICENSE')
     fs.writeFileSync('./LICENSE', fromTemplate(licenseTemplate))
@@ -163,7 +175,8 @@ function onNpmReady() {
 
   if(!fs.existsSync('./README.markdown') && !fs.existsSync('./README.md')) {
     console.log('writing README')
-    fs.writeFileSync('./README.md', fromTemplate(readMeTemplate))
+    fs.writeFileSync('./README.md',
+      fromTemplate(readMeTemplate).replace(/\n\n\n\n/g, '\n\n'))
   }
 
   if(settings.tests && !fs.existsSync('./.travis.yml')) {
@@ -238,7 +251,7 @@ function readMeTemplate() {/*
 
 <travisLink>
 
-<description>
+<descriptionLine>
 
 Installation
 ============
