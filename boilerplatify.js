@@ -104,7 +104,8 @@ function onPrompt() {
   }
   if(!fs.existsSync('./' + settings.main)) {
     console.log('writing ' + settings.main)
-    fs.writeFileSync('./' + settings.main, "'use strict'\n")
+    fs.writeFileSync('./' + settings.main,
+      "#!/usr/bin/env node\n\n'use strict'\n")
   }
   if(settings.browser === 'y' && !fs.existsSync('./favicon.ico')) {
     console.log('writing favicon.ico')
@@ -165,7 +166,7 @@ function onNpmReady() {
     fs.writeFileSync('./README.md', fromTemplate(readMeTemplate))
   }
 
-  if(!fs.existsSync('./.travis.yml')) {
+  if(settings.tests && !fs.existsSync('./.travis.yml')) {
     console.log('writing travis.yml')
     fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
   }
