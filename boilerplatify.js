@@ -72,7 +72,9 @@ function onPrompt() {
     description: settings.description,
     bin: settings.main,
     main: settings.main,
-    scripts: {},
+    scripts: {
+      publish: './node_modules/bumpt/bumpt.js'
+    },
     keywords: settings.keywords,
     repository: {
       type: 'git',
@@ -127,6 +129,8 @@ function onPrompt() {
 
   var packages = []
     , editPackages
+
+  ensurePackage('bumpt')
 
   if(settings.tests) {
     ensurePackage('istanbul')
