@@ -57,10 +57,8 @@ function onGitConfig() {
       settings.title + ')')
     if(fs.existsSync('./index.js'))
       settings.main = 'index.js'
-    else {
-      settings.main = settings.title
-      if(!endsWith(settings.main, '.js')) settings.main += '.js'
-    }
+    else settings.main = settings.title
+    settings.min = (settings.main + '.js.min.js').replace('.js.min.', '.min.')
     settings.keywords = (settings['keywords(space-delimited)'] || '')
       .split(' ')
       .filter(function(x) { return x.length })
@@ -90,16 +88,17 @@ function onPrompt() {
   }
   if(settings.browser)
     packageDefaults.scripts.build =
-      './node_modules/browserify/bin/cmd.js ' +
+      './node_modules/.bin/browserify ' +
       '-s ' + settings.camelTitle + ' -r ./ ' +
-      '> ' + settings.main + '.min.js; ' +
-      'gzip -c ' + settings.main + '.min.js | wc -c'
+      '| ./node_modules/.bin/uglifyjs ' +
+      '> ' + settings.min + '; ' +
+      'gzip -c ' + settings.min + ' | wc -c'
   if(settings.tests) {
     packageDefaults.scripts.test =
-      './node_modules/istanbul/lib/cli.js ' +
-      'cover node_modules/nodeunit/bin/nodeunit -- ./tests.js'
+      './node_modules/.bin/istanbul ' +
+      'cover node_modules/.bin/nodeunit -- ./tests.js'
     packageDefaults.scripts.watch =
-      './node_modules/nodemon/bin/nodemon.js ' +
+      './node_modules/.bin/nodemon ' +
       'node_modules/nodeunit/bin/nodeunit -- ./tests.js'
   }
   var packageChanged = setDefaults(packageDefaults, packageJson)
@@ -138,8 +137,10 @@ function onPrompt() {
     ensurePackage('nodemon')
   }
 
-  if(settings.browser === 'y')
+  if(settings.browser === 'y') {
+    ensurePackage('uglify-js')
     ensurePackage('browserify')
+  }
 
   if(!packages.length) {
     onNpmReady()
