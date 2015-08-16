@@ -57,7 +57,10 @@ function onGitConfig() {
       settings.title + ')')
     if(fs.existsSync('./index.js'))
       settings.main = 'index.js'
-    else settings.main = settings.title + '.js'
+    else {
+      settings.main = settings.title
+      if(!endsWith(settings.main, '.js')) settings.main += '.js'
+    }
     settings.keywords = (settings['keywords(space-delimited)'] || '')
       .split(' ')
       .filter(function(x) { return x.length })
@@ -90,8 +93,9 @@ function onPrompt() {
   if(settings.browser)
     packageDefaults.scripts.build =
       './node_modules/browserify/bin/cmd.js ' +
-      'browserify -s ' + settings.camelTitle + ' -r ./ > ' +
-      settings.main + '.browser.js'
+      '-s ' + settings.camelTitle + ' -r ./ ' +
+      '> ' + settings.main + '.min.js; ' +
+      'gzip -c ' + settings.main + '.min.js | wc -c'
   if(settings.tests) {
     packageDefaults.scripts.test =
       './node_modules/istanbul/lib/cli.js ' +
@@ -287,4 +291,8 @@ function setDefaults(source, target) {
     target[key] = source[key]
   })
   return changed
+}
+
+function endsWith(str, end) {
+  return str.lastIndexOf(end) === str.length - end.length
 }
