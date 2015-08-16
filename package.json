@@ -17,15 +17,11 @@
     "url": "https://github.com/omphalos/boilerplatify/issues"
   },
   "homepage": "https://github.com/omphalos/boilerplatify",
-  "scripts": {
-    "publish": "./node_modules/bumpt/bumpt.js"
-  },
+  "scripts": {},
   "keywords": [
     "boilerplate",
     "utility"
   ],
   "bin": "boilerplatify.js",
-  "devDependencies": {
-    "bumpt": "0.0.3"
-  }
+  "devDependencies": {}
 }
