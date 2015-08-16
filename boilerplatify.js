@@ -75,9 +75,7 @@ function onPrompt() {
     description: settings.description,
     bin: settings.main,
     main: settings.main,
-    scripts: {
-      publish: './node_modules/bumpt/bumpt.js'
-    },
+    scripts: {},
     keywords: settings.keywords,
     repository: {
       type: 'git',
@@ -133,8 +131,6 @@ function onPrompt() {
 
   var packages = []
     , editPackages
-
-  ensurePackage('bumpt')
 
   if(settings.tests) {
     ensurePackage('istanbul')
@@ -213,7 +209,6 @@ function onPermissionAdded() {
   console.log('Things to do (not automated by boilerplatify):')
   console.log('* Add the repo to github')
   console.log('* Add the repo to travis')
-  console.log('* npm publish')
   console.log('* Enhance your README')
 }
 
