@@ -25,6 +25,7 @@ childProcess.exec('git config --get user.name', function(ex, out, err) {
 
 function onGitConfig() {
   var prompts = []
+  if(!packageJson.description) prompts.push('description')
   if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
   if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
     prompts.push('browser(y/n)')
