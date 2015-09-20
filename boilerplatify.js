@@ -69,8 +69,9 @@ function onPrompt() {
     description: settings.description,
     main: settings.main,
     scripts: {
+      tape: './node_modules/.bin/tape ./tests.js',
       lint: './node_modules/.bin/minilint',
-      test: './node_modules/.bin/istanbul ./tests.js',
+      test: './node_modules/.bin/istanbul cover ./tests.js',
       coveralls: 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls',
       watch: './node_modules/.bin/nodemon ./tests.js'
     },
@@ -94,8 +95,6 @@ function onPrompt() {
       + settings.camelTitle + ' > bundle.js'
     packageDefaults.scripts.build
       = 'npm run bundle; npm run minify; npm run count; rm bundle.js'
-    packageDefaults.scripts.tape
-      = './node_modules/.bin/tape ./tests.js'
     packageDefaults.scripts.zuul
       = './node_modules/.bin/zuul -- tests.js'
     packageDefaults.scripts.minify
