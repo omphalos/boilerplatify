@@ -23,8 +23,6 @@ if(!packageJson.description) prompts.push('description')
 if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
 if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
   prompts.push('browser(y/n)')
-if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.test)
-  prompts.push('tests(y/n)')
 if(!hasPackageJson || !packageJson.bin)
   prompts.push('cli(y/n)')
 prompt.get(prompts, function(err, result) {
@@ -44,14 +42,13 @@ prompt.get(prompts, function(err, result) {
   settings.year = new Date().getYear() + 1900
   settings.camelTitle = string(settings.title).camelize()
   settings.browser = settings['browser(y/n)'] === 'y'
-  settings.tests = settings['tests(y/n)'] === 'y'
-  settings.travisLink = !settings.tests ? '' : ('[![Build Status]' +
+  settings.travisLink = '[![Build Status]' +
     '(https://secure.travis-ci.org/' +
     settings.author + '/' +
     settings.title + '.png)]' +
     '(http://travis-ci.org/' +
     settings.author + '/' +
-    settings.title + ')')
+    settings.title + ')'
   if(fs.existsSync('./index.js'))
     settings.main = 'index.js'
   else settings.main = ensureEndsWith(settings.title, '.js')
@@ -68,7 +65,12 @@ function onPrompt() {
     version: '0.0.1',
     description: settings.description,
     main: settings.main,
-    scripts: {},
+    scripts: {
+      lint: './node_modules/.bin/minilint',
+      test: './node_modules/.bin/istanbul ./tests.js',
+      coveralls: 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls',
+      watch: './node_modules/.bin/nodemon ./tests.js'
+    },
     keywords: settings.keywords,
     repository: {
       type: 'git',
@@ -83,38 +85,42 @@ function onPrompt() {
   }
   if(settings.cli)
     packageDefaults.bin = settings.main
-  if(settings.browser)
-    packageDefaults.scripts.build =
-      './node_modules/.bin/browserify ' +
-      '-s ' + settings.camelTitle + ' -r ./ ' +
-      '| ./node_modules/.bin/uglifyjs ' +
-      '> ' + settings.min + '; ' +
-      'gzip -c ' + settings.min + ' | wc -c'
-  if(settings.tests) {
-    packageDefaults.scripts.test =
-      './node_modules/.bin/istanbul ./tests.js'
-    packageDefaults.scripts.watch =
-      './node_modules/.bin/nodemon ./tests.js'
-  }
+  if(settings.browser) {
+    packageDefaults.scripts.bundle
+      = './node_modules/.bin/browserify -s '
+      + settings.camelTitle ' + > bundle.js'
+    packageDefaults.scripts.build
+      = 'npm run bundle; npm run minify; npm run count; rm bundle.js'
+    packageDefaults.scripts.tape
+      = './node_modules/.bin/tape ./tests.js'
+    packageDefaults.scripts.zuul
+      = './node_modules/.bin/zuul -- tests.js'
+    packageDefaults.scripts.minify
+      = 'cat bundle.js | ./node_modules/.bin/uglifyjs > ' + settings.min
+    packageDefaults.scripts.count
+      = 'gzip -c ' + settings.min + ' | wc -c'
+    packageDefaults.scripts.release
+      = 'npm run build; npm run test; ./node_modules/.bin/bumpt'
+  } else
+    packageDefaults.scripts.release
+      = 'npm run test; ./node_modules/.bin/bumpt'
   var packageChanged = setDefaults(packageDefaults, packageJson)
   if(packageChanged) {
     console.log('writing package.json')
     fs.writeFileSync('./package.json',
       JSON.stringify(packageJson, null, '  '))
   }
-  if(settings.tests) {
-    if(!fs.existsSync('./tests.js')) {
-      console.log('writing tests.js')
-      fs.writeFileSync('./tests.js', fromTemplate(testsTemplate))
-    }
-    childProcess.execSync('chmod +x ./tests.js')
+  if(!fs.existsSync('./tests.js')) {
+    console.log('writing tests.js')
+    fs.writeFileSync('./tests.js', fromTemplate(testsTemplate))
   }
+  childProcess.execSync('chmod +x ./tests.js')
   if(!fs.existsSync('./' + settings.main)) {
     console.log('writing ' + settings.main)
     fs.writeFileSync('./' + settings.main,
       "#!/usr/bin/env node\n\n'use strict'\n")
   }
-  if(settings.browser === 'y' && !fs.existsSync('./favicon.ico')) {
+  if(settings.browser && !fs.existsSync('./favicon.ico')) {
     console.log('writing favicon.ico')
     var favicon = fs.readFileSync(path.combine(__dirname, 'favicon.ico'))
     fs.writeFileSync('./favicon.ico', favicon)
@@ -129,15 +135,55 @@ function onPrompt() {
   var packages = []
     , editPackages
 
-  if(settings.tests) {
-    ensurePackage('istanbul')
-    ensurePackage('tape')
-    ensurePackage('nodemon')
-  }
+  ensurePackage('istanbul')
+  ensurePackage('tape')
+  ensurePackage('nodemon')
+  ensurePackage('coveralls')
 
-  if(settings.browser === 'y') {
+  if(settings.browser) {
     ensurePackage('uglify-js')
     ensurePackage('browserify')
+    ensurePackage('zuul')
+  }
+
+  childProcess.execSync('chmod +x ' + settings.main)
+
+  if(!fs.existsSync('./LICENSE')) {
+    console.log('writing LICENSE')
+    fs.writeFileSync('./LICENSE', fromTemplate(licenseTemplate))
+  }
+
+  if(!fs.existsSync('./README.markdown') && !fs.existsSync('./README.md')) {
+    console.log('writing README')
+    fs.writeFileSync('./README.md',
+      fromTemplate(readMeTemplate).replace(/\n\n\n\n/g, '\n\n'))
+  }
+
+  if(!fs.existsSync('./.travis.yml')) {
+    console.log('writing travis.yml')
+    fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
+  }
+
+  if(settings.browser && !fs.existsSync('./.zuul.yml')) {
+    console.log('writing zuul.yml')
+    fs.writeFileSync('./.zuul.yml', fromTemplate(travisTemplate))
+  }
+
+  var gitignore = []
+    , editGitignore
+  if(fs.existsSync('./.gitignore'))
+    gitignore = fs.readFileSync('./.gitignore').toString().split('\n')
+  if(gitignore.indexOf('node_modules') < 0) {
+    gitignore.push('node_modules')
+    editGitignore = true
+  }
+  if(gitignore.indexOf('coverage') < 0) {
+    gitignore.push('coverage')
+    editGitignore = true
+  }
+  if(editGitignore) {
+    console.log('writing .gitignore')
+    fs.writeFileSync('./.gitignore', gitignore.join('\n'))
   }
 
   if(!packages.length) {
@@ -164,52 +210,25 @@ function onPrompt() {
 }
 
 function onNpmReady() {
-  childProcess.execSync('chmod +x ' + settings.main)
-
-  if(!fs.existsSync('./LICENSE')) {
-    console.log('writing LICENSE')
-    fs.writeFileSync('./LICENSE', fromTemplate(licenseTemplate))
-  }
-
-  if(!fs.existsSync('./README.markdown') && !fs.existsSync('./README.md')) {
-    console.log('writing README')
-    fs.writeFileSync('./README.md',
-      fromTemplate(readMeTemplate).replace(/\n\n\n\n/g, '\n\n'))
-  }
-
-  if(settings.tests && !fs.existsSync('./.travis.yml')) {
-    console.log('writing travis.yml')
-    fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
-  }
-
-  var gitignore = []
-    , editGitignore
-  if(fs.existsSync('./.gitignore'))
-    gitignore = fs.readFileSync('./.gitignore').toString().split('\n')
-  if(gitignore.indexOf('node_modules') < 0) {
-    gitignore.push('node_modules')
-    editGitignore = true
-  }
-  if(settings.tests && gitignore.indexOf('coverage') < 0) {
-    gitignore.push('coverage')
-    editGitignore = true
-  }
-  if(editGitignore) {
-    console.log('writing .gitignore')
-    fs.writeFileSync('./.gitignore', gitignore.join('\n'))
-  }
-
   console.log()
   console.log('Things to do (not automated by boilerplatify):')
   console.log('* Add the repo to github')
   console.log('* Add the repo to travis')
   console.log('* Enhance your README')
+  if(settings.browser) {
+    console.log('* Enable the zuul using travis-encrypt:') {
+    console.log('travis-encrypt SAUCE_USERNAME=' + gitUser
+      + ' -r ' + gitUser + '/' + settings.title + ' --add')
+    console.log('travis-encrypt SAUCE_ACCESS_KEY='
+      + process.env.SAUCE_KEY
+      + ' -r ' + gitUser + '/' + settings.title + ' --add')
+  }
 }
 
 function fromTemplate(fn) {
   var str = fn.toString()
     , start = str.indexOf('{/*') + '{/*'.length
-    , end = str.indexOf('*/}')
+    , end = str.indexOf('*/}')  
     , text = str.substring(start, end).trim()
   Object.keys(settings).forEach(function(key) {
     text = text.replace(new RegExp('<' + key + '>', 'g'), settings[key])
@@ -278,6 +297,24 @@ function travisTemplate() {/*
 language: node_js
 node_js:
   - "stable"
+after_script:
+  - npm run-script cover
+  - npm run-script coveralls
+*/}
+
+function zuulTemplate() {/*
+ui: tape
+browsers:
+  - name: internet explorer
+    version: 10..latest
+  - name: chrome
+    version: latest
+  - name: firefox
+    version: latest
+  - name: safari
+    version: latest
+  - name: opera
+    version: latest
 */}
 
 function setDefaults(source, target) {
