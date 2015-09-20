@@ -234,6 +234,7 @@ function fromTemplate(fn) {
     , end = str.indexOf('*/}')  
     , text = str.substring(start, end).trim()
   Object.keys(settings).forEach(function(key) {
+    if(!settings[key]) return
     text = text.replace(new RegExp('<' + key + '>', 'g'), settings[key])
     text = text.replace(new RegExp('<under:' + key + '>', 'g'),
       Array(settings[key].length).join('='))
@@ -265,16 +266,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */}
 
 function testsTemplate() {/*
-  #!/usr/bin/env node
+#!/usr/bin/env node
 
-  'use strict'
+'use strict'
 
-  var test = require('tape')
+var test = require('tape')
 
-  test('todo', function(t) {
-    t.equal(1 + 1, 2)
-    t.end()
-  })
+test('todo', function(t) {
+  t.equal(1 + 1, 2)
+  t.end()
+})
 */}
 
 function readMeTemplate() {/*

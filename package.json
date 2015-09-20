@@ -17,13 +17,23 @@
     "url": "https://github.com/omphalos/boilerplatify/issues"
   },
   "homepage": "https://github.com/omphalos/boilerplatify",
-  "scripts": {},
+  "scripts": {
+    "lint": "./node_modules/.bin/minilint",
+    "test": "./node_modules/.bin/istanbul ./tests.js",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls",
+    "watch": "./node_modules/.bin/nodemon ./tests.js",
+    "release": "npm run test; ./node_modules/.bin/bumpt"
+  },
   "keywords": [
     "boilerplate",
     "utility"
   ],
   "bin": "boilerplatify.js",
   "devDependencies": {
-    "bumpt": "0.0.4"
+    "bumpt": "0.0.4",
+    "coveralls": "^2.11.4",
+    "istanbul": "^0.3.20",
+    "nodemon": "^1.6.1",
+    "tape": "^4.2.0"
   }
 }
