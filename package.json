@@ -23,5 +23,7 @@
     "utility"
   ],
   "bin": "boilerplatify.js",
-  "devDependencies": {}
+  "devDependencies": {
+    "bumpt": "0.0.4"
+  }
 }

@@ -3,16 +3,16 @@
 'use strict'
 
 var fs = require('fs')
-  , path = require('path')
-  , prompt = require('prompt')
-  , childProcess = require('child_process')
-  , string = require('string')
-  , settings
-  , hasPackageJson
-  , packageJson = {}
-  , prompts = []
-  , gitUserOutput = childProcess.execSync('git config --get user.name')
-  , gitUser = gitUserOutput.toString().trim()
+var path = require('path')
+var prompt = require('prompt')
+var childProcess = require('child_process')
+var string = require('string')
+var settings
+var hasPackageJson
+var packageJson = {}
+var prompts = []
+var gitUserOutput = childProcess.execSync('git config --get user.name')
+var gitUser = gitUserOutput.toString().trim()
 
 if(fs.existsSync('./package.json')) {
   hasPackageJson = true
@@ -42,6 +42,9 @@ prompt.get(prompts, function(err, result) {
   settings.year = new Date().getYear() + 1900
   settings.camelTitle = string(settings.title).camelize()
   settings.browser = settings['browser(y/n)'] === 'y'
+    || (hasPackageJson && packageJson.scripts && packageJson.scripts.build)
+  settings.cli = settings['cli(y/n)'] === 'y'
+    || (hasPackageJson && packageJson.bin)
   settings.travisLink = '[![Build Status]' +
     '(https://secure.travis-ci.org/' +
     settings.author + '/' +
@@ -88,7 +91,7 @@ function onPrompt() {
   if(settings.browser) {
     packageDefaults.scripts.bundle
       = './node_modules/.bin/browserify -s '
-      + settings.camelTitle ' + > bundle.js'
+      + settings.camelTitle + ' > bundle.js'
     packageDefaults.scripts.build
       = 'npm run bundle; npm run minify; npm run count; rm bundle.js'
     packageDefaults.scripts.tape
@@ -122,7 +125,7 @@ function onPrompt() {
   }
   if(settings.browser && !fs.existsSync('./favicon.ico')) {
     console.log('writing favicon.ico')
-    var favicon = fs.readFileSync(path.combine(__dirname, 'favicon.ico'))
+    var favicon = fs.readFileSync(path.join(__dirname, 'favicon.ico'))
     fs.writeFileSync('./favicon.ico', favicon)
   }
 
@@ -212,11 +215,11 @@ function onPrompt() {
 function onNpmReady() {
   console.log()
   console.log('Things to do (not automated by boilerplatify):')
+  console.log('* Enhance your README')
   console.log('* Add the repo to github')
   console.log('* Add the repo to travis')
-  console.log('* Enhance your README')
   if(settings.browser) {
-    console.log('* Enable the zuul using travis-encrypt:') {
+    console.log('* Enable the zuul using travis-encrypt:')
     console.log('travis-encrypt SAUCE_USERNAME=' + gitUser
       + ' -r ' + gitUser + '/' + settings.title + ' --add')
     console.log('travis-encrypt SAUCE_ACCESS_KEY='
