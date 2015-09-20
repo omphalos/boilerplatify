@@ -4,7 +4,7 @@
     "string": "^3.3.0"
   },
   "name": "boilerplatify",
-  "version": "0.0.47",
+  "version": "0.0.48",
   "description": "A boilerplate for my projects",
   "main": "boilerplatify.js",
   "repository": {
@@ -22,7 +22,8 @@
     "test": "./node_modules/.bin/istanbul ./tests.js",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls",
     "watch": "./node_modules/.bin/nodemon ./tests.js",
-    "release": "npm run test; ./node_modules/.bin/bumpt"
+    "release": "npm run test; ./node_modules/.bin/bumpt",
+    "tape": "./node_modules/.bin/tape ./tests.js"
   },
   "keywords": [
     "boilerplate",
