@@ -8,71 +8,65 @@ var fs = require('fs')
   , childProcess = require('child_process')
   , string = require('string')
   , settings
-  , gitUser
   , hasPackageJson
   , packageJson = {}
+  , prompts = []
+  , gitUserOutput = childProcess.execSync('git config --get user.name')
+  , gitUser = gitUserOutput.toString().trim()
 
 if(fs.existsSync('./package.json')) {
   hasPackageJson = true
   packageJson = JSON.parse(fs.readFileSync('./package.json').toString())
 }
 
-childProcess.exec('git config --get user.name', function(ex, out, err) {
-  if(ex) throw ex
-  gitUser = out.trim()
-  onGitConfig()
+if(!packageJson.description) prompts.push('description')
+if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
+if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
+  prompts.push('browser(y/n)')
+if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.test)
+  prompts.push('tests(y/n)')
+if(!hasPackageJson || !packageJson.bin)
+  prompts.push('cli(y/n)')
+prompt.get(prompts, function(err, result) {
+  if(err) throw err
+  settings = result
+  if(!('description' in settings))
+    settings.description = packageJson.description || '<description>'
+  var desc = settings.description
+  if(desc[desc.length - 1] === '.') {
+    settings.descriptionLine = desc
+    settings.description = desc.substring(0, desc.length - 1)
+  } else settings.descriptionLine = desc + '.'
+  settings.author = gitUser
+  settings.title = path.basename(process.cwd())
+  settings.githubUrl = 'https://github.com/' +
+    settings.author + '/' + settings.title
+  settings.year = new Date().getYear() + 1900
+  settings.camelTitle = string(settings.title).camelize()
+  settings.browser = settings['browser(y/n)'] === 'y'
+  settings.tests = settings['tests(y/n)'] === 'y'
+  settings.travisLink = !settings.tests ? '' : ('[![Build Status]' +
+    '(https://secure.travis-ci.org/' +
+    settings.author + '/' +
+    settings.title + '.png)]' +
+    '(http://travis-ci.org/' +
+    settings.author + '/' +
+    settings.title + ')')
+  if(fs.existsSync('./index.js'))
+    settings.main = 'index.js'
+  else settings.main = ensureEndsWith(settings.title, '.js')
+  settings.min = (settings.main + '.min.js').replace('.js.min.js', '.min.js')
+  settings.keywords = (settings['keywords(space-delimited)'] || '')
+    .split(' ')
+    .filter(function(x) { return x.length })
+  onPrompt()
 })
-
-function onGitConfig() {
-  var prompts = []
-  if(!packageJson.description) prompts.push('description')
-  if(!packageJson.keywords) prompts.push('keywords(space-delimited)')
-  if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.build)
-    prompts.push('browser(y/n)')
-  if(!hasPackageJson || !packageJson.scripts || !packageJson.scripts.test)
-    prompts.push('tests(y/n)')
-  prompt.get(prompts, function(err, result) {
-    if(err) throw err
-    settings = result
-    if(!('description' in settings))
-      settings.description = packageJson.description || '<description>'
-    var desc = settings.description
-    if(desc[desc.length - 1] === '.') {
-      settings.descriptionLine = desc
-      settings.description = desc.substring(0, desc.length - 1)
-    } else settings.descriptionLine = desc + '.'
-    settings.author = gitUser
-    settings.title = path.basename(process.cwd())
-    settings.githubUrl = 'https://github.com/' +
-      settings.author + '/' + settings.title
-    settings.year = new Date().getYear() + 1900
-    settings.camelTitle = string(settings.title).camelize()
-    settings.browser = settings['browser(y/n)'] === 'y'
-    settings.tests = settings['tests(y/n)'] === 'y'
-    settings.travisLink = !settings.tests ? '' : ('[![Build Status]' +
-      '(https://secure.travis-ci.org/' +
-      settings.author + '/' +
-      settings.title + '.png)]' +
-      '(http://travis-ci.org/' +
-      settings.author + '/' +
-      settings.title + ')')
-    if(fs.existsSync('./index.js'))
-      settings.main = 'index.js'
-    else settings.main = settings.title
-    settings.min = (settings.main + '.js.min.js').replace('.js.min.', '.min.')
-    settings.keywords = (settings['keywords(space-delimited)'] || '')
-      .split(' ')
-      .filter(function(x) { return x.length })
-    onPrompt()
-  })
-}
 
 function onPrompt() {
   var packageDefaults = {
     name: settings.title,
     version: '0.0.1',
     description: settings.description,
-    bin: settings.main,
     main: settings.main,
     scripts: {},
     keywords: settings.keywords,
@@ -87,6 +81,8 @@ function onPrompt() {
     },
     homepage: settings.githubUrl,
   }
+  if(settings.cli)
+    packageDefaults.bin = settings.main
   if(settings.browser)
     packageDefaults.scripts.build =
       './node_modules/.bin/browserify ' +
@@ -96,11 +92,9 @@ function onPrompt() {
       'gzip -c ' + settings.min + ' | wc -c'
   if(settings.tests) {
     packageDefaults.scripts.test =
-      './node_modules/.bin/istanbul ' +
-      'cover node_modules/.bin/nodeunit -- ./tests.js'
+      './node_modules/.bin/istanbul ./tests.js'
     packageDefaults.scripts.watch =
-      './node_modules/.bin/nodemon ' +
-      'node_modules/nodeunit/bin/nodeunit -- ./tests.js'
+      './node_modules/.bin/nodemon ./tests.js'
   }
   var packageChanged = setDefaults(packageDefaults, packageJson)
   if(packageChanged) {
@@ -108,9 +102,12 @@ function onPrompt() {
     fs.writeFileSync('./package.json',
       JSON.stringify(packageJson, null, '  '))
   }
-  if(settings.tests && !fs.existsSync('./tests.js')) {
-    console.log('writing tests.js')
-    fs.writeFileSync('./tests.js', "'use strict'\n")
+  if(settings.tests) {
+    if(!fs.existsSync('./tests.js')) {
+      console.log('writing tests.js')
+      fs.writeFileSync('./tests.js', fromTemplate(testsTemplate))
+    }
+    childProcess.execSync('chmod +x ./tests.js')
   }
   if(!fs.existsSync('./' + settings.main)) {
     console.log('writing ' + settings.main)
@@ -134,7 +131,7 @@ function onPrompt() {
 
   if(settings.tests) {
     ensurePackage('istanbul')
-    ensurePackage('nodeunit')
+    ensurePackage('tape')
     ensurePackage('nodemon')
   }
 
@@ -167,13 +164,8 @@ function onPrompt() {
 }
 
 function onNpmReady() {
-  childProcess.exec('chmod +x ' + settings.main, function(ex, out, err) {
-    if(ex) throw ex
-    onPermissionAdded()
-  })
-}
+  childProcess.execSync('chmod +x ' + settings.main)
 
-function onPermissionAdded() {
   if(!fs.existsSync('./LICENSE')) {
     console.log('writing LICENSE')
     fs.writeFileSync('./LICENSE', fromTemplate(licenseTemplate))
@@ -214,6 +206,19 @@ function onPermissionAdded() {
   console.log('* Enhance your README')
 }
 
+function fromTemplate(fn) {
+  var str = fn.toString()
+    , start = str.indexOf('{/*') + '{/*'.length
+    , end = str.indexOf('*/}')
+    , text = str.substring(start, end).trim()
+  Object.keys(settings).forEach(function(key) {
+    text = text.replace(new RegExp('<' + key + '>', 'g'), settings[key])
+    text = text.replace(new RegExp('<under:' + key + '>', 'g'),
+      Array(settings[key].length).join('='))
+  })
+  return text
+}
+
 function licenseTemplate() {/*
 The MIT License (MIT)
 
@@ -237,18 +242,18 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */}
 
-function fromTemplate(fn) {
-  var str = fn.toString()
-    , start = str.indexOf('{/*') + '{/*'.length
-    , end = str.indexOf('*/}')
-    , text = str.substring(start, end).trim()
-  Object.keys(settings).forEach(function(key) {
-    text = text.replace(new RegExp('<' + key + '>', 'g'), settings[key])
-    text = text.replace(new RegExp('<under:' + key + '>', 'g'),
-      Array(settings[key].length).join('='))
+function testsTemplate() {/*
+  #!/usr/bin/env node
+
+  'use strict'
+
+  var test = require('tape')
+
+  test('todo', function(t) {
+    t.equal(1 + 1, 2)
+    t.end()
   })
-  return text
-}
+*/}
 
 function readMeTemplate() {/*
 <title>
@@ -273,7 +278,6 @@ function travisTemplate() {/*
 language: node_js
 node_js:
   - "stable"
-  - "iojs"
 */}
 
 function setDefaults(source, target) {
@@ -292,4 +296,9 @@ function setDefaults(source, target) {
 
 function endsWith(str, end) {
   return str.lastIndexOf(end) === str.length - end.length
+}
+
+function ensureEndsWith(str, ending) {
+  if(endsWith(str, ending)) return str
+  return str + ending
 }
