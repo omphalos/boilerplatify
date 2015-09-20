@@ -102,10 +102,10 @@ function onPrompt() {
     packageDefaults.scripts.count
       = 'gzip -c ' + settings.min + ' | wc -c'
     packageDefaults.scripts.release
-      = 'npm run build; npm run test; ./node_modules/.bin/bumpt'
+      = 'npm run build && npm run test && ./node_modules/.bin/bumpt'
   } else
     packageDefaults.scripts.release
-      = 'npm run test; ./node_modules/.bin/bumpt'
+      = 'npm run test && ./node_modules/.bin/bumpt'
   var packageChanged = setDefaults(packageDefaults, packageJson)
   if(packageChanged) {
     console.log('writing package.json')
