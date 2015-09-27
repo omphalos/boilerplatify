@@ -91,8 +91,8 @@ function onPrompt() {
     packageDefaults.bin = settings.main
   if(settings.browser) {
     packageDefaults.scripts.bundle
-      = './node_modules/.bin/browserify -s '
-      + settings.camelTitle + ' > bundle.js'
+      = './node_modules/.bin/browserify ' + settings.main
+      + ' -s ' + settings.camelTitle + ' > bundle.js'
     packageDefaults.scripts.build
       = 'npm run bundle; npm run minify; npm run count; rm bundle.js'
     packageDefaults.scripts.zuul
