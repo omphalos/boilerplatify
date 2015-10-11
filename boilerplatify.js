@@ -71,7 +71,7 @@ function onPrompt() {
     scripts: {
       tape: './node_modules/.bin/tape ./tests.js',
       lint: './node_modules/.bin/minilint',
-      test: './node_modules/.bin/istanbul cover ./tests.js',
+      cover: './node_modules/.bin/istanbul cover ./tests.js',
       coveralls: 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls',
       watch: './node_modules/.bin/nodemon ./tests.js'
     },
@@ -90,6 +90,9 @@ function onPrompt() {
   if(settings.cli)
     packageDefaults.bin = settings.main
   if(settings.browser) {
+    packageDefaults.scripts.count = 'gzip -c ' + settings.min + ' | wc -c',
+    packageDefaults.scripts.test
+      = 'npm run lint; npm run tape; npm run cover; npm run zuul'
     packageDefaults.scripts.bundle
       = './node_modules/.bin/browserify ' + settings.main
       + ' -s ' + settings.camelTitle + ' > bundle.js'
@@ -103,9 +106,12 @@ function onPrompt() {
       = 'gzip -c ' + settings.min + ' | wc -c'
     packageDefaults.scripts.release
       = 'npm run build && npm run test && ./node_modules/.bin/bumpt'
-  } else
+  } else {
+    packageDefaults.scripts.test
+      = 'npm run lint; npm run tape; npm run cover'
     packageDefaults.scripts.release
       = 'npm run test && ./node_modules/.bin/bumpt'
+  }
   var packageChanged = setDefaults(packageDefaults, packageJson)
   if(packageChanged) {
     console.log('writing package.json')
