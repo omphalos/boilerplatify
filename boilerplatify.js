@@ -139,6 +139,7 @@ function onPrompt() {
 
   ensurePackage('istanbul')
   ensurePackage('tape')
+  ensurePackage('bumpt')
   ensurePackage('nodemon')
   ensurePackage('coveralls')
 
