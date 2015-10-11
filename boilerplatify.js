@@ -168,7 +168,7 @@ function onPrompt() {
 
   if(settings.browser && !fs.existsSync('./.zuul.yml')) {
     console.log('writing zuul.yml')
-    fs.writeFileSync('./.zuul.yml', fromTemplate(travisTemplate))
+    fs.writeFileSync('./.zuul.yml', fromTemplate(zuulTemplate))
   }
 
   var gitignore = []
