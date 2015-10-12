@@ -144,6 +144,7 @@ function onPrompt() {
     , editPackages
 
   ensurePackage('istanbul')
+  ensurePackage('minilint')
   ensurePackage('tape')
   ensurePackage('bumpt')
   ensurePackage('nodemon')
