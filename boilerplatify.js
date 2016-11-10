@@ -69,11 +69,13 @@ function onPrompt() {
     description: settings.description,
     main: settings.main,
     scripts: {
-      tape: './node_modules/.bin/tape ./tests.js',
-      lint: './node_modules/.bin/minilint',
-      cover: './node_modules/.bin/istanbul cover ./tests.js',
-      coveralls: 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls',
-      watch: './node_modules/.bin/nodemon ./tests.js'
+      mocha: 'mocha ./tests.js',
+      lint: 'minilint',
+      cover: 'istanbul cover _mocha -- ./tests.js',
+      'check-coverage': 'istanbul check-coverage coverage/coverage.json',
+      'cover-and-check': 'npm run cover && npm run check-coverage',
+      coveralls: 'cat ./coverage/lcov.info | coveralls',
+      watch: "nodemon -x 'mocha ./tests.js'"
     },
     keywords: settings.keywords,
     repository: {
@@ -92,7 +94,7 @@ function onPrompt() {
   if(settings.browser) {
     packageDefaults.scripts.count = 'gzip -c ' + settings.min + ' | wc -c',
     packageDefaults.scripts.test
-      = 'npm run lint && npm run tape && npm run cover'
+      = 'npm run lint && npm run mocha && npm run cover'
     packageDefaults.scripts.bundle
       = './node_modules/.bin/browserify ' + settings.main
       + ' -s ' + settings.camelTitle + ' > bundle.js'
@@ -106,7 +108,7 @@ function onPrompt() {
       = 'npm run build && npm run test && ./node_modules/.bin/bumpt'
   } else {
     packageDefaults.scripts.test
-      = 'npm run lint; npm run tape; npm run cover'
+      = 'npm run lint && npm run mocha && npm run cover'
     packageDefaults.scripts.release
       = 'npm run test && ./node_modules/.bin/bumpt'
   }
@@ -143,7 +145,7 @@ function onPrompt() {
 
   ensurePackage('istanbul')
   ensurePackage('minilint')
-  ensurePackage('tape')
+  ensurePackage('mocha')
   ensurePackage('bumpt')
   ensurePackage('nodemon')
   ensurePackage('coveralls')
@@ -169,6 +171,11 @@ function onPrompt() {
   if(!fs.existsSync('./.travis.yml')) {
     console.log('writing travis.yml')
     fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
+  }
+
+  if(!fs.existsSync('./.istanbul.yml')) {
+    console.log('writing istanbul.yml')
+    fs.writeFileSync('./.istanbul.yml', fromTemplate(istanbulTemplate))
   }
 
   var gitignore = []
@@ -261,11 +268,11 @@ function testsTemplate() {/*
 
 'use strict'
 
-var test = require('tape')
+var test = require('mocha')
+var assert = require('assert')
 
-test('todo', function(t) {
-  t.equal(1 + 1, 2)
-  t.end()
+it('should add', function() {
+  assert.equal(1 + 1, 2)
 })
 */}
 
@@ -295,6 +302,17 @@ node_js:
 after_script:
   - npm run-script cover
   - npm run-script coveralls
+*/}
+
+function istanbulTemplate() {/*
+instrumentation:
+  excludes: [tests.js]
+check:
+  global:
+    statements: 100
+    lines: 100
+    branches: 100
+    functions: 100
 */}
 
 function setDefaults(source, target) {
