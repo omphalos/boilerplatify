@@ -92,14 +92,12 @@ function onPrompt() {
   if(settings.browser) {
     packageDefaults.scripts.count = 'gzip -c ' + settings.min + ' | wc -c',
     packageDefaults.scripts.test
-      = 'npm run lint; npm run tape; npm run cover; npm run zuul'
+      = 'npm run lint && npm run tape && npm run cover'
     packageDefaults.scripts.bundle
       = './node_modules/.bin/browserify ' + settings.main
       + ' -s ' + settings.camelTitle + ' > bundle.js'
     packageDefaults.scripts.build
       = 'npm run bundle; npm run minify; npm run count; rm bundle.js'
-    packageDefaults.scripts.zuul
-      = './node_modules/.bin/zuul -- tests.js'
     packageDefaults.scripts.minify
       = 'cat bundle.js | ./node_modules/.bin/uglifyjs > ' + settings.min
     packageDefaults.scripts.count
@@ -141,7 +139,7 @@ function onPrompt() {
   }
 
   var packages = []
-    , editPackages
+  var editPackages
 
   ensurePackage('istanbul')
   ensurePackage('minilint')
@@ -153,7 +151,6 @@ function onPrompt() {
   if(settings.browser) {
     ensurePackage('uglify-js')
     ensurePackage('browserify')
-    ensurePackage('zuul')
   }
 
   childProcess.execSync('chmod +x ' + settings.main)
@@ -174,13 +171,8 @@ function onPrompt() {
     fs.writeFileSync('./.travis.yml', fromTemplate(travisTemplate))
   }
 
-  if(settings.browser && !fs.existsSync('./.zuul.yml')) {
-    console.log('writing zuul.yml')
-    fs.writeFileSync('./.zuul.yml', fromTemplate(zuulTemplate))
-  }
-
   var gitignore = []
-    , editGitignore
+  var editGitignore
   if(fs.existsSync('./.gitignore'))
     gitignore = fs.readFileSync('./.gitignore').toString().split('\n')
   if(gitignore.indexOf('node_modules') < 0) {
@@ -225,21 +217,13 @@ function onNpmReady() {
   console.log('* Enhance your README')
   console.log('* Add the repo to github')
   console.log('* Add the repo to travis')
-  if(settings.browser) {
-    console.log('* Enable the zuul using travis-encrypt:')
-    console.log('travis-encrypt SAUCE_USERNAME=' + gitUser
-      + ' -r ' + gitUser + '/' + settings.title + ' --add')
-    console.log('travis-encrypt SAUCE_ACCESS_KEY='
-      + process.env.SAUCE_KEY
-      + ' -r ' + gitUser + '/' + settings.title + ' --add')
-  }
 }
 
 function fromTemplate(fn) {
   var str = fn.toString()
-    , start = str.indexOf('{/*') + '{/*'.length
-    , end = str.indexOf('*/}')  
-    , text = str.substring(start, end).trim()
+  var start = str.indexOf('{/*') + '{/*'.length
+  var end = str.indexOf('*/}')
+  var text = str.substring(start, end).trim()
   Object.keys(settings).forEach(function(key) {
     if(!settings[key]) return
     text = text.replace(new RegExp('<' + key + '>', 'g'), settings[key])
@@ -311,21 +295,6 @@ node_js:
 after_script:
   - npm run-script cover
   - npm run-script coveralls
-*/}
-
-function zuulTemplate() {/*
-ui: tape
-browsers:
-  - name: internet explorer
-    version: 10..latest
-  - name: chrome
-    version: latest
-  - name: firefox
-    version: latest
-  - name: safari
-    version: latest
-  - name: opera
-    version: latest
 */}
 
 function setDefaults(source, target) {
